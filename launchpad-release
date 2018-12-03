@@ -15,10 +15,11 @@ if [ -z "$1" ]; then
   exit 1
 fi
 
+REVISION=0001
 PROJECTNAME=$(echo "$SOURCE" | cut -d'/' -f2)
 PROJECTNAME_DEB=$(echo "$PROJECTNAME" | sed 's/_//g')
-DIRNAME="${PROJECTNAME_DEB}_$1-rev0001"
-FILENAME="${PROJECTNAME_DEB}_$1.rev0001.orig.tar.gz"
+DIRNAME="${PROJECTNAME_DEB}_$1-rev$REVISION"
+FILENAME="${PROJECTNAME_DEB}_$1.rev$REVISION.orig.tar.gz"
 SOURCE="https://github.com/$SOURCE/releases/download/$1/$PROJECTNAME-$1.tar.gz"
 PREVVERSION=$(find . -maxdepth 1 -type d | sort -r | head -n1)
 if [[ "$PREVVERSION" =~ .*$1.* ]]; then
@@ -51,7 +52,7 @@ debuild -S -sa
 cd ..
 
 echo "dput to Launchpad..."
-dput "$PPA" "${PROJECTNAME_DEB}_$1.rev0001_source.changes"
+dput "$PPA" "${PROJECTNAME_DEB}_$1.rev${REVISION}_source.changes"
 
 echo "Done!"
 
