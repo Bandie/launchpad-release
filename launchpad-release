@@ -1,0 +1,56 @@
+#!/bin/bash
+# launchpad-release, a little github to launchpad releaser helper script
+# Author: Bandie <bandie@chaospott.de>
+# Year: 2018
+# License: GNU-GPL3
+
+# github project
+SOURCE="pampanic/pam_panic"
+
+# PPA
+PPA="ppa:bandie/pampanic"
+
+if [ -z "$1" ]; then
+	echo "$0: Usage: $0 [ Version number to be released ]"
+  exit 1
+fi
+
+PROJECTNAME=$(echo "$SOURCE" | cut -d'/' -f2)
+PROJECTNAME_DEB=$(echo "$PROJECTNAME" | sed 's/_//g')
+DIRNAME="${PROJECTNAME_DEB}_$1-rev0001"
+FILENAME="${PROJECTNAME_DEB}_$1.rev0001.orig.tar.gz"
+SOURCE="https://github.com/$SOURCE/releases/download/$1/$PROJECTNAME-$1.tar.gz"
+PREVVERSION=$(find . -maxdepth 1 -type d | sort -r | head -n1)
+if [[ "$PREVVERSION" =~ .*$1.* ]]; then
+  rm -rf *$1*
+  PREVVERSION=$(find . -maxdepth 1 -type d | sort -r | head -n1)
+fi
+
+echo "Downloading sources from $SOURCE..."
+wget "$SOURCE" -O "$FILENAME" 2> /dev/null
+echo "Downloading signature from $SOURCE.asc..."
+wget "$SOURCE.asc" -O "$FILENAME.asc" 2> /dev/null
+
+gpg --verify "$FILENAME.asc" "$FILENAME" || { echo "GPG verification failed."; exit 1; }
+echo -e "\nContinuing...\n"
+sleep 1
+
+echo "Extracting..."
+tar xf "$FILENAME"
+echo "Rename it to a debianish name..."
+mv $PROJECTNAME-$1 $DIRNAME
+echo "Copy debian directory from previous version ($PREVVERSION)..."
+cp -r "$PREVVERSION/debian" "$DIRNAME" || { echo "Couldn't find debian dir. Exiting."; exit 1; }
+echo "Please do the changelog now."
+sleep 2
+[[ -n $EDITOR ]] && { $EDITOR "$DIRNAME/debian/changelog"; } || { [[ -n "$(which vim)" ]] && { vim "$DIRNAME/debian/changelog"; } || { nano "$DIRNAME/debian/changelog"; }; }
+
+echo "Running debuild -S -sa..."
+cd "$DIRNAME"
+debuild -S -sa
+
+echo "dput to Launchpad..."
+dput "$PPA" "${PROJECTNAME_DEB}_$1.rev0001_source.changes"
+
+echo "Done!"
+
