@@ -17,7 +17,7 @@ if [ -z "$1" ]; then
 fi
 
 CODENAME="cosmic"
-REVISION=3
+REVISION=1
 PROJECTNAME=$(echo "$SOURCE" | cut -d'/' -f2)
 PROJECTNAME_DEB=$(echo "$PROJECTNAME" | sed 's/_//g')
 DIRNAME="${PROJECTNAME_DEB}_$1-${REVISION}${CODENAME}0"
